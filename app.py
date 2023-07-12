@@ -17,8 +17,8 @@ bot.
 
 import logging
 
-from telegram import __version__ as TG_VER
-from telegram.ext import ChatJoinRequestHandler
+from telegram import __version__ as TG_VER, InlineKeyboardButton, InlineKeyboardMarkup
+from conversation import conv_handler
 
 
 try:
@@ -33,7 +33,7 @@ if __version_info__ < (20, 0, 0, "alpha", 1):
         f"visit https://docs.python-telegram-bot.org/en/v{TG_VER}/examples.html"
     )
 from telegram import ForceReply, Update
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, ChatJoinRequestHandler
 
 # Enable logging
 logging.basicConfig(
@@ -63,16 +63,21 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Echo the user message."""
-
-    # await update.message.reply_text(update.message.text)
-    print(update)
-    await update.message.reply_text(9999999)
+    keyboard = [[]]
+    # Не забудь указать языки в entry_points conversation handler
+    keyboard[0].append(InlineKeyboardButton('українська', callback_data='uk'))
+    keyboard[0].append(InlineKeyboardButton('english', callback_data='en'))
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text('Hi!\nPlease choose language.\nOr enter /cancel to quit', reply_markup=reply_markup)
 
 
 async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # await update.message.reply_text(9999999)
-    context.bot.send_message(chat_id=update.effective_chat.id, text='helloooooo')
-    pass
+    user_chat_id = update.chat_join_request.user_chat_id
+    user_first_name = update.chat_join_request.from_user.first_name
+    user_last_name = update.chat_join_request.from_user.last_name
+
+    update.message.reply_text('Hi!\nPlease choose language.\nOr enter /cancel to quit', reply_markup=reply_markup)
+    await context.bot.send_message(chat_id=user_chat_id, text='helloooooo')
     # await context.bot.approve_chat_join_request(
     #     chat_id=update.effective_chat.id, user_id=update.effective_user.id
     # )
@@ -87,9 +92,11 @@ def main() -> None:
     application.add_handler(CommandHandler("help", help_command))
 
     # on non command i.e message - echo the message on Telegram
-    # application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     # application.add_handler(MessageHandler(None, echo))
     application.add_handler(ChatJoinRequestHandler(join_request))
+    application.add_handler(conv_handler)
+    # application.add_handler(conv_handler)
 
     # Run the bot until the user presses Ctrl-C
     application.run_polling(allowed_updates=Update.ALL_TYPES)
