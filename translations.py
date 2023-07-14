@@ -1,22 +1,22 @@
 translations = {
     'question1': {
-        'en': 'Please enter your name and surname',
-        'uk': 'Введіть Ваше ім\'я та прізвище',
+        'en': '1. Please enter your name and surname',
+        'ru': '1. Введите ваши имя и фамилию',
     },
     'question2': {
-        'en': 'Enter the title of your company',
-        'uk': 'Введіть назву вашої компанії',
+        'en': '2. Enter the title of your company',
+        'ru': '2. Введите название компании',
     },
     'question3': {
-        'en': 'Enter the title of your city',
-        'uk': 'Введіть назву вашого міста',
+        'en': '3. Enter the title of your city',
+        'ru': '3. Введите название вашего города',
     },
     'question4': {
-        'en': 'Enter the area of your business',
-        'uk': 'Введіть назву вашого бізнесу',
+        'en': '4. Enter the area of your business',
+        'ru': '4. Укажите сферу вашего бизнеса',
     },
     'success_message': {
-        'en': 'Thank you! Thank you. Your data has been sent to the group administrator',
-        'uk': 'Дякую, ваші дані надіслано адміністратору групи',
+        'en': 'Thank you! Your data has been sent to the group administrator',
+        'ru': 'Спасибо, Ваши данные отправлены администратору',
     }
 }
