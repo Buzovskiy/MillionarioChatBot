@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 import decouple
 from telegram import __version__ as TG_VER, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove, \
-    Update
+    Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, ChatJoinRequestHandler, \
     CallbackContext
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, ConversationHandler, \
@@ -33,15 +33,34 @@ logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
 
-[QUESTION1, QUESTION2, QUESTION3, ACTION_SUCCESS] = range(4)
+[QUESTION1, QUESTION2, QUESTION3, ACTION_SUCCESS, CHOOSING_LANGUAGE] = range(5)
 
 
 greeting = """
 Здравствуйте! Вы отправили заявку на добавление в бизнес клуб Millionario. Прежде чем мы ее \
-рассмотрим, ответьте, пожалуйста, на 4 вопроса.\n\n
+рассмотрим, ответьте, пожалуйста, на 4 вопроса.\n
+Чтобы продолжить, нажмите кнопку *start_conversation*
+\n
+
 Hello! You have sent an application to be added to the Millionario business club. Before we consider it, please answer\
-4 questions.
+4 questions.\n
+In order to continue please press button *start_conversation*
 """
+
+
+async def start_conversation(update: Update, context: CallbackContext):
+    """Обработчик запроса пользователя на добавление в группу"""
+    keyboard = [[]]
+    # Не забудь указать языки в entry_points conversation handler
+    keyboard[0].append(InlineKeyboardButton('русский', callback_data='ru'))
+    keyboard[0].append(InlineKeyboardButton('english', callback_data='en'))
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "Пожалуйста, выберите Ваш язык.\nPlease choose your language.",
+        reply_markup=reply_markup,
+        parse_mode='markdown'
+    )
+    return CHOOSING_LANGUAGE
 
 
 async def set_language(update: Update, context: CallbackContext):
@@ -54,8 +73,10 @@ async def set_language(update: Update, context: CallbackContext):
     await query.answer()
     lang = context.user_data['lang'] = query.data
     reply_markup = InlineKeyboardMarkup([])
-    await query.edit_message_caption(reply_markup=reply_markup)
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=translations['question1'][lang])
+
+    await query.edit_message_text(
+        text=str(translations['question1'][lang]),
+        reply_markup=reply_markup)
 
     return QUESTION1
 
@@ -118,21 +139,35 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик запроса пользователя на добавление в группу"""
     user_chat_id = update.chat_join_request.user_chat_id
     keyboard = [[]]
-    # Не забудь указать языки в entry_points conversation handler
-    keyboard[0].append(InlineKeyboardButton('русский', callback_data='ru'))
-    keyboard[0].append(InlineKeyboardButton('english', callback_data='en'))
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    keyboard[0].append(KeyboardButton('/start_conversation'))
+    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
     await context.bot.send_photo(
         chat_id=user_chat_id,
         photo=BASE_DIR / 'millionario_photo.jpg',
         caption=greeting,
-        reply_markup=reply_markup
+        reply_markup=reply_markup,
+        parse_mode='markdown'
     )
 
 
 async def show_my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Выводим админу его chat_id, чтобы использовать для рассылки анкет"""
     await update.message.reply_text(str(update.effective_chat.id))
+
+
+# async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     """Обработчик запроса пользователя на добавление в группу"""
+#     user_chat_id = 873450726
+#     keyboard = [[]]
+#     keyboard[0].append(KeyboardButton('/start_conversation'))
+#     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+#     await context.bot.send_photo(
+#         chat_id=user_chat_id,
+#         photo=BASE_DIR / 'millionario_photo.jpg',
+#         caption=greeting,
+#         reply_markup=reply_markup,
+#         parse_mode='markdown'
+#     )
 
 
 def main() -> None:
@@ -143,6 +178,9 @@ def main() -> None:
     application.add_handler(ChatJoinRequestHandler(join_request))
     application.add_handler(conv_handler)
     application.add_handler(CommandHandler("show_my_id", show_my_id))
+
+
+    # application.add_handler(CommandHandler("test", test))
 
     # Run the bot until the user presses Ctrl-C
     application.run_polling(allowed_updates=Update.ALL_TYPES)
@@ -162,9 +200,12 @@ async def cancel(update: Update, context: CallbackContext) -> int:
 
 conv_handler = ConversationHandler(
     entry_points=[
-        CallbackQueryHandler(set_language, pattern='(ru|en)'),
+        CommandHandler('start_conversation', start_conversation)
     ],
     states={
+        CHOOSING_LANGUAGE: [
+            CallbackQueryHandler(set_language, pattern='(ru|en)'),
+        ],
         QUESTION1: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, show_question2),
         ],
