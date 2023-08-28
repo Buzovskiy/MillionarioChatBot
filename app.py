@@ -39,12 +39,13 @@ BASE_DIR = Path(__file__).resolve().parent
 greeting = """
 Здравствуйте! Вы отправили заявку на добавление в бизнес клуб Millionario. Прежде чем мы ее \
 рассмотрим, ответьте, пожалуйста, на 4 вопроса.\n
-Чтобы продолжить, нажмите кнопку *start_conversation*
+Чтобы продолжить, нажмите кнопку *Start conversation*
 \n
 
 Hello! You have sent an application to be added to the Millionario business club. Before we consider it, please answer\
-4 questions.\n
-In order to continue please press button *start_conversation*
+ 4 questions.\n
+In order to continue please press button *Start conversation*\n
+👇
 """
 
 
@@ -139,8 +140,8 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик запроса пользователя на добавление в группу"""
     user_chat_id = update.chat_join_request.user_chat_id
     keyboard = [[]]
-    keyboard[0].append(KeyboardButton('/start_conversation'))
-    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+    keyboard[0].append(KeyboardButton('👉 Start conversation'))
+    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=False)
     await context.bot.send_photo(
         chat_id=user_chat_id,
         photo=BASE_DIR / 'millionario_photo.jpg',
@@ -159,8 +160,8 @@ async def show_my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 #     """Обработчик запроса пользователя на добавление в группу"""
 #     user_chat_id = 873450726
 #     keyboard = [[]]
-#     keyboard[0].append(KeyboardButton('/start_conversation'))
-#     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+#     keyboard[0].append(KeyboardButton('👉 Start conversation'))
+#     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=False)
 #     await context.bot.send_photo(
 #         chat_id=user_chat_id,
 #         photo=BASE_DIR / 'millionario_photo.jpg',
@@ -200,7 +201,7 @@ async def cancel(update: Update, context: CallbackContext) -> int:
 
 conv_handler = ConversationHandler(
     entry_points=[
-        CommandHandler('start_conversation', start_conversation)
+        MessageHandler(filters.Regex('👉 Start conversation') & ~filters.COMMAND, start_conversation)
     ],
     states={
         CHOOSING_LANGUAGE: [
