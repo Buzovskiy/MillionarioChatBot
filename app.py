@@ -9,7 +9,6 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
     CallbackQueryHandler, filters
 from translations import translations
 
-
 try:
     from telegram import __version_info__
 except ImportError:
@@ -35,29 +34,26 @@ BASE_DIR = Path(__file__).resolve().parent
 
 [QUESTION1, QUESTION2, QUESTION3, ACTION_SUCCESS, CHOOSING_LANGUAGE] = range(5)
 
-
 greeting = """
-Здравствуйте! Вы отправили заявку на добавление в бизнес клуб Millionario. Прежде чем мы ее \
-рассмотрим, ответьте, пожалуйста, на 4 вопроса.\n
-Чтобы продолжить, нажмите кнопку *Start conversation*
-\n
+Вітаю 👋!\nПеред тим, як ми вишлемо Вам посилання на групу *бізнес клубу Millionario* дайте відповідь\
+ на 4 запитання.\nЩоб продовжити, оберіть мову спілкування.\nАбо натисніть /cancel, щоб вийти з режиму діалогу
 
-Hello! You have sent an application to be added to the Millionario business club. Before we consider it, please answer\
- 4 questions.\n
-In order to continue please press button *Start conversation*\n
-👇
-"""
+Hello 👋!\nBefore we send you a link to the group of *Business Club Millionario*, answer 4 questions.\nTo continue, \
+select your language of communication.\nOr press /cancel to quit the dialog"""
 
 
 async def start_conversation(update: Update, context: CallbackContext):
     """Обработчик запроса пользователя на добавление в группу"""
     keyboard = [[]]
     # Не забудь указать языки в entry_points conversation handler
-    keyboard[0].append(InlineKeyboardButton('русский', callback_data='ru'))
-    keyboard[0].append(InlineKeyboardButton('english', callback_data='en'))
+    keyboard[0].append(InlineKeyboardButton('Українська', callback_data='uk'))
+    keyboard[0].append(InlineKeyboardButton('English', callback_data='en'))
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "Пожалуйста, выберите Ваш язык.\nPlease choose your language.",
+
+    await context.bot.send_photo(
+        chat_id=update.message.chat_id,
+        photo=BASE_DIR / 'millionario_photo.jpg',
+        caption=greeting,
         reply_markup=reply_markup,
         parse_mode='markdown'
     )
@@ -73,11 +69,12 @@ async def set_language(update: Update, context: CallbackContext):
     query = update.callback_query
     await query.answer()
     lang = context.user_data['lang'] = query.data
-    reply_markup = InlineKeyboardMarkup([])
 
-    await query.edit_message_text(
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
         text=str(translations['question1'][lang]),
-        reply_markup=reply_markup)
+        parse_mode='markdown'
+    )
 
     return QUESTION1
 
@@ -118,13 +115,15 @@ async def show_success_message(update: Update, context: CallbackContext):
     """
     context.user_data['question4'] = update.effective_message.text
     lang = context.user_data['lang']
-    await update.message.reply_text(text=translations['success_message'][lang])
+    group_link = decouple.config('GROUP_LINK')
+    new_success_message = translations['success_message'][lang].replace('GROUP_LINK', group_link)
+    await update.message.reply_text(text=new_success_message)
     ADMINS_CHAT_ID_LIST = decouple.config('ADMINS_CHAT_ID_LIST', cast=lambda v: [s.strip() for s in v.split(',')])
     if len(ADMINS_CHAT_ID_LIST):
         user_first_name = update.effective_message.chat.first_name
         user_last_name = update.effective_message.chat.last_name
-        hello_text = f"Здравствуйте! Пользователь *{user_first_name} {user_last_name}* хочет присоединиться к " \
-                     "бизнес клубу Millionario. Ознакомьтесь с его анкетой."
+        hello_text = f"Вітаю! Користувач *{user_first_name} {user_last_name}* хоче приєднатися до " \
+                     "бізнес клубу Millionario. Ознайомтесь з його анкетою."
         answers = f"{hello_text}\n*{translations['question1'][lang]}*: {context.user_data['question1']}\n"
         answers += f"*{translations['question2'][lang]}*: {context.user_data['question2']}\n"
         answers += f"*{translations['question3'][lang]}*: {context.user_data['question3']}\n"
@@ -136,39 +135,9 @@ async def show_success_message(update: Update, context: CallbackContext):
     return ConversationHandler.END
 
 
-async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик запроса пользователя на добавление в группу"""
-    user_chat_id = update.chat_join_request.user_chat_id
-    keyboard = [[]]
-    keyboard[0].append(KeyboardButton('👉 Start conversation'))
-    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=False)
-    await context.bot.send_photo(
-        chat_id=user_chat_id,
-        photo=BASE_DIR / 'millionario_photo.jpg',
-        caption=greeting,
-        reply_markup=reply_markup,
-        parse_mode='markdown'
-    )
-
-
 async def show_my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Выводим админу его chat_id, чтобы использовать для рассылки анкет"""
     await update.message.reply_text(str(update.effective_chat.id))
-
-
-# async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     """Обработчик запроса пользователя на добавление в группу"""
-#     user_chat_id = 873450726
-#     keyboard = [[]]
-#     keyboard[0].append(KeyboardButton('👉 Start conversation'))
-#     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=False)
-#     await context.bot.send_photo(
-#         chat_id=user_chat_id,
-#         photo=BASE_DIR / 'millionario_photo.jpg',
-#         caption=greeting,
-#         reply_markup=reply_markup,
-#         parse_mode='markdown'
-#     )
 
 
 def main() -> None:
@@ -176,12 +145,8 @@ def main() -> None:
     # Create the Application and pass it your bot's token.
     application = Application.builder().token(decouple.config('BOT_TOKEN')).build()
 
-    application.add_handler(ChatJoinRequestHandler(join_request))
     application.add_handler(conv_handler)
     application.add_handler(CommandHandler("show_my_id", show_my_id))
-
-
-    # application.add_handler(CommandHandler("test", test))
 
     # Run the bot until the user presses Ctrl-C
     application.run_polling(allowed_updates=Update.ALL_TYPES)
@@ -201,11 +166,11 @@ async def cancel(update: Update, context: CallbackContext) -> int:
 
 conv_handler = ConversationHandler(
     entry_points=[
-        MessageHandler(filters.Regex('👉 Start conversation') & ~filters.COMMAND, start_conversation)
+        CommandHandler('start', start_conversation),
     ],
     states={
         CHOOSING_LANGUAGE: [
-            CallbackQueryHandler(set_language, pattern='(ru|en)'),
+            CallbackQueryHandler(set_language, pattern='(uk|en)'),
         ],
         QUESTION1: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, show_question2),
