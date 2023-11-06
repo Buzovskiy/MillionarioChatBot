@@ -1,8 +1,11 @@
 import logging
+from datetime import datetime, timedelta
 from pathlib import Path
 import decouple
+import telegram
 from telegram import __version__ as TG_VER, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove, \
     Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram.error import BadRequest
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, ChatJoinRequestHandler, \
     CallbackContext
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, ConversationHandler, \
@@ -31,6 +34,8 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
+
+GROUP_CHAT_ID = decouple.config('GROUP_CHAT_ID')
 
 [QUESTION1, QUESTION2, QUESTION3, ACTION_SUCCESS, CHOOSING_LANGUAGE] = range(5)
 
@@ -115,10 +120,20 @@ async def show_success_message(update: Update, context: CallbackContext):
     """
     context.user_data['question4'] = update.effective_message.text
     lang = context.user_data['lang']
-    group_link = decouple.config('GROUP_LINK')
-    new_success_message = translations['success_message'][lang].replace('GROUP_LINK', group_link)
-    await update.message.reply_text(text=new_success_message)
+    group_link = await context.bot.create_chat_invite_link(
+        chat_id=GROUP_CHAT_ID,
+        expire_date=datetime.now() + timedelta(hours=24),
+        member_limit=1
+    )
+    new_success_message = translations['success_message'][lang].replace('GROUP_LINK', group_link.invite_link)
+
+    try:
+        await update.message.reply_text(text=new_success_message)
+    except BadRequest:
+        pass
+
     ADMINS_CHAT_ID_LIST = decouple.config('ADMINS_CHAT_ID_LIST', cast=lambda v: [s.strip() for s in v.split(',')])
+
     if len(ADMINS_CHAT_ID_LIST):
         user_first_name = update.effective_message.chat.first_name
         user_last_name = update.effective_message.chat.last_name
@@ -140,6 +155,11 @@ async def show_my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     await update.message.reply_text(str(update.effective_chat.id))
 
 
+async def show_group_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Показать id группы"""
+    await update.message.reply_text(str(update.effective_chat.id))
+
+
 def main() -> None:
     """Start the bot."""
     # Create the Application and pass it your bot's token.
@@ -147,6 +167,8 @@ def main() -> None:
 
     application.add_handler(conv_handler)
     application.add_handler(CommandHandler("show_my_id", show_my_id))
+
+    application.add_handler(CommandHandler("show_group_id", show_group_id))
 
     # Run the bot until the user presses Ctrl-C
     application.run_polling(allowed_updates=Update.ALL_TYPES)
