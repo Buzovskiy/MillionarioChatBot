@@ -11,6 +11,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, ConversationHandler, \
     CallbackQueryHandler, filters
 from translations import translations
+from group_message_conv import message_conv_handler
 
 try:
     from telegram import __version_info__
@@ -150,6 +151,10 @@ async def show_success_message(update: Update, context: CallbackContext):
     return ConversationHandler.END
 
 
+async def send_message_to_group(update: Update, context: CallbackContext):
+    await context.bot.send_message(chat_id=GROUP_CHAT_ID, text='Hola!', parse_mode='markdown')
+
+
 async def show_my_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Выводим админу его chat_id, чтобы использовать для рассылки анкет"""
     await update.message.reply_text(str(update.effective_chat.id))
@@ -166,6 +171,7 @@ def main() -> None:
     application = Application.builder().token(decouple.config('BOT_TOKEN')).build()
 
     application.add_handler(conv_handler)
+    application.add_handler(message_conv_handler)
     application.add_handler(CommandHandler("show_my_id", show_my_id))
 
     application.add_handler(CommandHandler("show_group_id", show_group_id))
