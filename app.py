@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent
 
 GROUP_CHAT_ID = decouple.config('GROUP_CHAT_ID')
+BUSINESS_CLUB_TITLE = decouple.config('BUSINESS_CLUB_TITLE')
 
 [QUESTION1, QUESTION2, QUESTION3, ACTION_SUCCESS, CHOOSING_LANGUAGE] = range(5)
 
@@ -139,7 +140,7 @@ async def show_success_message(update: Update, context: CallbackContext):
         user_first_name = update.effective_message.chat.first_name
         user_last_name = update.effective_message.chat.last_name
         hello_text = f"Вітаю! Користувач *{user_first_name} {user_last_name}* хоче приєднатися до " \
-                     "бізнес клубу Millionario. Ознайомтесь з його анкетою."
+                     f"бізнес клубу Millionario *{BUSINESS_CLUB_TITLE}*. Ознайомтесь з його анкетою."
         answers = f"{hello_text}\n*{translations['question1'][lang]}*: {context.user_data['question1']}\n"
         answers += f"*{translations['question2'][lang]}*: {context.user_data['question2']}\n"
         answers += f"*{translations['question3'][lang]}*: {context.user_data['question3']}\n"
