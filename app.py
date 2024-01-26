@@ -125,7 +125,8 @@ async def show_success_message(update: Update, context: CallbackContext):
     group_link = await context.bot.create_chat_invite_link(
         chat_id=GROUP_CHAT_ID,
         expire_date=datetime.now() + timedelta(hours=24),
-        member_limit=1
+        # member_limit=1,
+        creates_join_request=True
     )
     new_success_message = translations['success_message'][lang].replace('GROUP_LINK', group_link.invite_link)
 
