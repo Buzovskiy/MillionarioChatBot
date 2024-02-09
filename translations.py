@@ -4,8 +4,8 @@ translations = {
         'uk': '1. Введіть Ваше ім\'я та прізвище',
     },
     'question2': {
-        'en': '2. Enter the title of your company',
-        'uk': '2. Введіть назву компанії',
+        'en': '2. Please enter your telephone number',
+        'uk': '2. Будь ласка, введіть свій номер телефону',
     },
     'question3': {
         'en': '3. Enter the title of your city',
